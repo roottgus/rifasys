@@ -1,0 +1,65 @@
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Oculta elementos con x-cloak de AlpineJS */
+[x-cloak] { display: none !important; }
+
+/* Animación fadeIn para mostrar bloques suavemente */
+.animate-fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(24px);}
+    to   { opacity: 1; transform: translateY(0);}
+}
+
+/* Mejora visual de inputs */
+input[type="text"], input[type="email"], input[type="number"], input[type="date"], select {
+    border-radius: 0.65rem;
+    background: #f9fafb;
+    border: 1.2px solid #d1d5db;
+    transition: border-color 0.2s;
+}
+input:focus, select:focus {
+    border-color: #2563eb;
+    outline: none;
+}
+
+/* Botones más redondos y limpios */
+button { border-radius: 0.7rem; font-weight: 600; }
+
+/* Fondo azul elegante para panel cliente */
+.bg-blue-50 {
+    background: linear-gradient(120deg,#f0f7ff 0%, #e5f0ff 100%) !important;
+}
+
+/* Responsive: oculta watermark en móvil y ajusta padding */
+@media (max-width: 900px) {
+  .panel-watermark { display: none !important; }
+  .max-w-4xl { max-width: 99vw !important; min-width: unset !important; }
+  .flex-col.md\:flex-row { flex-direction: column !important; }
+  .md\:w-1\/2 { width: 100% !important; border-right: none !important; border-bottom: 1px solid #e5e7eb !important; }
+  .px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
+}
+
+
+/* Compactar el modal de SweetAlert2 */
+.swal2-compact-modal {
+    padding: 0.5rem !important;
+    border-radius: 1.2rem !important;
+    font-size: 1rem !important;
+    max-width: 350px !important; /* Máximo ancho permitido */
+    box-shadow: 0 10px 32px 0 rgb(0 0 0 / 12%);
+}
+
+.swal2-compact-modal .swal2-title {
+    font-size: 1.25rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.swal2-compact-modal .swal2-html-container {
+    font-size: 1rem !important;
+}
