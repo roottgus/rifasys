@@ -11,7 +11,8 @@
         </div>
     </template>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-12 items-start">
+
         {{-- Columna 1: Botones de métodos de pago --}}
         <div class="md:col-span-1 md:w-[250px] mx-auto flex flex-col gap-3">
             <template x-for="mp in metodosPagoActivos" :key="mp.key">
@@ -56,8 +57,8 @@
                 </button>
             </template>
         </div>
-        {{-- Columna 2: datos de la empresa --}}
-        <div class="md:col-span-1 md:w-[300px] mx-auto">
+        {{-- Columna 2: datos de la empresa + RESUMEN DE COMPRA --}}
+        <div class="md:col-span-1 md:w-[300px] mx-auto flex flex-col gap-4">
             <template x-if="!metodoPago">
                 <div class="text-gray-400 text-center py-8 border border-gray-200 rounded-lg">
                     Selecciona un método para ver los datos de la empresa aquí.
@@ -88,9 +89,69 @@
                     </div>
                 </div>
             </template>
-        </div>
+
+           {{-- BLOQUE DE RESUMEN DE COMPRA CON FONDO VERDE CLARO --}}
+<template x-if="paso === 2 && pickedTickets.length > 0">
+  <div
+    x-transition
+    class="bg-green-50 border-2 border-green-300 rounded-xl px-4 py-3 mt-2 shadow-md md:col-span-1"
+  >
+    <div class="font-bold text-green-700 text-base mb-2">
+      Resumen de compra
+    </div>
+    <div class="text-xs text-gray-700 mb-2">
+      <span class="font-semibold">Cliente:</span>
+      <span x-text="cliente.nombre"></span>
+      <template x-if="cliente.cedula">
+        <span> – C.I: <span x-text="cliente.cedula"></span></span>
+      </template>
+    </div>
+    <div class="text-xs text-gray-700 mb-2">
+      <span class="font-semibold">Rifa:</span>
+      <span x-text="pickedTickets[0]?.rifa?.nombre || 'No definido'"></span>
+    </div>
+    <div class="text-xs text-gray-700 mb-2">
+      <span class="font-semibold">Tickets:</span>
+      <template x-for="t in pickedTickets" :key="t.id">
+        <span
+          class="inline-block bg-green-200 text-green-900 rounded px-1.5 py-0.5 mx-0.5 text-[11px] font-mono"
+          x-text="t.numero_ticket"
+        ></span>
+      </template>
+    </div>
+
+    <div class="flex items-center justify-between text-xs text-gray-700 border-t pt-2 mt-2">
+      <span>Subtotal:</span>
+      <span x-text="`$${currentSubtotal.toFixed(2)}`"></span>
+    </div>
+
+     <!-- Mensaje de descuento aplicado -->
+    <template x-if="descuentos?.descuento > 0">
+  <div class="mt-1 text-sm text-green-800 font-semibold text-center">
+    ¡<span x-text="descuentos.descuento"></span>% de descuento aplicado!
+  </div>
+</template>
+
+    <template x-if="montoDescuento > 0">
+      <div class="flex items-center justify-between text-xs text-green-700">
+        <span>Descuento:</span>
+        <span>– <span x-text="montoDescuento.toFixed(2)"></span></span>
+      </div>
+    </template>
+
+    <div class="flex items-center justify-between text-base font-bold text-green-700 border-t pt-2 mt-2">
+  <span>Total a pagar:</span>
+  <span x-text="`$${currentTotal.toFixed(2)}`"></span>
+</div>
+
+  </div>
+</template>
+</div>
+
+        
         {{-- Columna 3: formulario “Reportar mi pago” --}}
-        <div class="md:col-span-1 md:w-[230px] mx-auto">
+        <div class="md:col-span-1 md:w-[260px] mx-auto md:ml-8">
+
             <template x-if="!metodoPago">
                 <div class="text-gray-400 text-center py-8 border border-gray-200 rounded-lg">
                     Aquí aparecerá el formulario para reportar tu pago.

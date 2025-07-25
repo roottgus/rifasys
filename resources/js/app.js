@@ -1,7 +1,8 @@
-// resources/js/app.js
-
 import '../css/app.css';
 import Alpine from 'alpinejs';
+
+// Exponer Alpine globalmente
+window.Alpine = Alpine;
 
 // -------------------------
 // 1. Componentes Alpine locales
@@ -134,31 +135,35 @@ window.gestionLoterias = gestionLoterias;
 // Hacer premiosModal visible globalmente para Alpine
 window.premiosModal = premiosModal;
 
-
 // -------------------------
 // 3. Inicializa Alpine y registra stores
 // -------------------------
 
 document.addEventListener('alpine:init', () => {
+  // 1) Registro explícito de "salePage"
+  Alpine.data('salePage', registerSalePage);
+
+  // Registra data() locales y page-level stores
   registerSalePage();
   Alpine.data('modalVentaTicket', modalVentaTicketStore);
   Alpine.data('modalTicketsCliente', modalTicketsClienteStore);
   Alpine.data('ticketDetail', ticketDetailStore);
+  Alpine.store('modalVentaTicket', modalVentaTicketStore());
 });
 
 // -------------------------
-// 4. Arranca Alpine
+// 4. Arranca Alpine y SweetAlert2
 // -------------------------
 
 document.addEventListener('DOMContentLoaded', () => {
   Alpine.start();
 
-  // 5. Mensajes SweetAlert2: Confirmación unificada para .btn-eliminar
+  // Mensajes SweetAlert2 para .btn-eliminar
   import('./components/swal.js').then(({ confirmDelete }) => {
-    document.querySelectorAll('.btn-eliminar').forEach(function(btn) {
-      btn.addEventListener('click', function (e) {
+    document.querySelectorAll('.btn-eliminar').forEach(btn => {
+      btn.addEventListener('click', e => {
         e.preventDefault();
-        confirmDelete().then((result) => {
+        confirmDelete().then(result => {
           if (result.isConfirmed) {
             btn.closest('form').submit();
           }

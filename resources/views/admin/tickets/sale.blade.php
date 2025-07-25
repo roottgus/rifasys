@@ -5,10 +5,12 @@
 {{-- Estilos especiales de animación y badges --}}
 @include('admin.tickets.partials._rifa_styles')
 
+
 @section('content')
 <script>
     window.rifasData = @json($rifas);
     window.metodosPagoActivos = @json($metodosPagoActivos);
+    window.ticketsData = @json($tickets); 
 </script>
 
 <div class="p-6 space-y-8" x-data="salePage(window.rifasData)" x-init="init()">
@@ -203,7 +205,12 @@
             <div class="grid gap-1" style="grid-template-columns: repeat(auto-fill, minmax(2.5rem, 1fr));">
                 <template x-for="t in filteredTickets" :key="t.id">
                     <div
-                        @click="t.estado === 'disponible' && !(getRifa() && getRifa().fecha_sorteo && (new Date(getRifa().fecha_sorteo) < new Date())) ? toggleTicketSel(t) : openTicketDetail(t)"
+                        @click="
+   t.estado === 'disponible'
+     && !(getRifa() && getRifa().fecha_sorteo && (new Date(getRifa().fecha_sorteo) < new Date()))
+     ? toggleTicketSel(t)
+     : openTicketDetail(t)
+ "
                         class="w-10 h-10 flex items-center justify-center text-xs font-mono select-none rounded-md cursor-pointer border-2 transition relative"
                         :class="{
                             'bg-gray-300 border-gray-400 text-gray-500': t.estado === 'vendido',

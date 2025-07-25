@@ -3,42 +3,34 @@ export function ventaCoreStore() {
   return {
     // ── Estado ──
     pickedTickets: [],
+    currentSubtotal: 0,
+currentTotal: 0,
+
     modalOpen: false,
     paso: 1,
     picked: null,
     padLen: 3,
     accion: 'vender',
     operaciones: [
-      { value: 'vender',   label: 'Venta Total',    icon: 'fas fa-cash-register' },
-      { value: 'apartado', label: 'Apartado',       icon: 'fas fa-hourglass-half' },
-      { value: 'abono',    label: 'Abono Inicial',  icon: 'fas fa-coins' }
+      { value: 'vender', label: 'Venta Total', icon: 'fas fa-cash-register' },
+      { value: 'apartado', label: 'Apartado', icon: 'fas fa-hourglass-half' },
+      { value: 'abono', label: 'Abono Inicial', icon: 'fas fa-coins' }
     ],
     errorFecha: '',
-    cliente: {
-      id: null,
-      nombre: '',
-      cedula: '',
-      email: '',
-      telefono: '',
-      direccion: ''
-    },
+    cliente: { id: null, nombre: '', cedula: '', email: '', telefono: '', direccion: '' },
     montoAbono: '',
     ventaExitosa: false,
     mensajeExito: '',
     accionRealizada: '',
     errorMensaje: '',
-    abonoModo: null,       // 'global' | 'ticket' | null
+    abonoModo: null,
     ticketParaAbono: null,
-    abonoEnCurso: false,   // Si está visible el bloque de abono
+    abonoEnCurso: false,
 
-    // ── AlpineJS hook ──
     init() {
-      window.addEventListener('cliente-cargado', event => {
-        this.setCliente(event.detail);
-      });
+      window.addEventListener('cliente-cargado', event => this.setCliente(event.detail));
     },
 
-    // Reset abono SIEMPRE que se sale/cambia de acción/modal
     resetAbono() {
       this.abonoEnCurso = false;
       this.montoAbono = '';
@@ -62,67 +54,98 @@ export function ventaCoreStore() {
       this.errorFecha = '';
     },
 
-    // ── Getters útiles ──
-    get subtotal() {
-      return this.pickedTickets.reduce((sum, t) => {
-        const price = parseFloat(t.precio_ticket) || 0;
-        return sum + price;
-      }, 0);
-    },
-    get montoDescuento() {
-      const totalAPagarNum = parseFloat(this.totalAPagar) || 0;
-      return Math.max(this.subtotal - totalAPagarNum, 0);
-    },
-    get motivoDescuento() {
-      return this.descuento > 0
-        ? `¡${this.descuento}% de descuento aplicado!`
-        : '';
-    },
-    getTotalAPagar() {
-      return Number(this.totalAPagar).toFixed(2);
+    openVentaSeleccionados(ticketOrArray) {
+      
+      this.open(ticketOrArray);
     },
 
-    // ── Gestión de tickets ──
+    // ── Getter de subtotal con logs exhaustivos ──
+    get subtotal() {
+      
+      const sum = this.pickedTickets
+        .map((t, idx) => {
+          
+          return t.precio_ticket;
+        })
+        .reduce((acc, p) => acc + p, 0);
+      
+      return sum;
+    },
+
+    get subtotalStr() {
+      return this.subtotal.toFixed(2);
+    },
+
+    get montoDescuento() {
+      const total = parseFloat(this.descuentos?.totalAPagar ?? 0) || 0;
+      return Math.max(this.subtotal - total, 0);
+    },
+
+    get motivoDescuento() {
+  return this.descuentos?.motivoDescuento || '';
+},
+
+
+    get totalAPagar() {
+      // 1) Lo que viene del store de descuentos
+      const backendTotal = parseFloat(this.descuentos?.totalAPagar ?? 0) || 0;
+      // 2) Fallback: el subtotal que ya calculaste
+      const fallback = this.currentSubtotal;
+      
+      // 3) Elegimos backendTotal si es > 0, si no usamos fallback
+      const total = backendTotal > 0 ? backendTotal : fallback;
+      return total.toFixed(2);
+    },
+
+    // Para compatibilidad
+    getTotalAPagar() {
+      return this.totalAPagar;
+    },
+
+    enrichTicketRifa(ticket) {
+      if (!ticket.rifa && ticket.rifa_id && window.rifasData) {
+        const rifa = window.rifasData.find(r => r.id == ticket.rifa_id);
+        if (rifa) {
+          ticket.rifa = rifa;
+          ticket.precio_ticket = ticket.precio_ticket ?? rifa.precio;
+        }
+      }
+      ticket.precio_ticket = parseFloat(ticket.precio_ticket) || 0;
+      ticket.numero_ticket = ticket.numero_ticket || ticket.numero || '';
+      return ticket;
+    },
+
     addTicket(ticket) {
+      ticket = this.enrichTicketRifa(ticket);
       if (!this.pickedTickets.some(t => t.id === ticket.id)) {
         this.pickedTickets.push(ticket);
         this.descuentos.calcularDescuento(this.pickedTickets, this.cliente);
       }
     },
+
     removeTicket(ticket) {
       this.pickedTickets = this.pickedTickets.filter(t => t.id !== ticket.id);
       this.descuentos.calcularDescuento(this.pickedTickets, this.cliente);
     },
+
     toggleTicket(ticket) {
-      this.pickedTickets.some(t => t.id === ticket.id)
-        ? this.removeTicket(ticket)
-        : this.addTicket(ticket);
+      this.pickedTickets.some(t => t.id === ticket.id) ? this.removeTicket(ticket) : this.addTicket(ticket);
     },
+
     clearTickets() {
       this.pickedTickets = [];
       this.descuentos.calcularDescuento(this.pickedTickets, this.cliente);
     },
 
-    // ── Modal ──
-    openVentaSeleccionados() {
-      if (!this.pickedTickets.length) return;
-      this.modalOpen = true;
-      this.paso = 1;
-      this.accion = 'vender';
-      this.picked = this.pickedTickets;
-      this.resetCliente?.();
-      this.ventaExitosa = false;
-      this.mensajeExito = '';
-      this.errorMensaje = '';
-      this.resetAbono();
-      this.descuentos.calcularDescuento(this.pickedTickets, this.cliente);
-      this.iniciarAbono?.();
-      document.body.style.overflow = 'hidden';
-    },
     open(ticketOrArray) {
       const arr = Array.isArray(ticketOrArray) ? ticketOrArray : [ticketOrArray];
-      this.pickedTickets = arr;
-      this.picked = arr[0];
+      this.pickedTickets = arr.map(this.enrichTicketRifa);
+      // ── NUEVO ──
+  this.currentSubtotal = this.pickedTickets.reduce((sum, t) => sum + t.precio_ticket, 0);
+  // ──────────
+  // como no hay descuento aún, el total = subtotal
+  this.currentTotal = this.currentSubtotal;
+      this.picked = this.pickedTickets[0];
       this.modalOpen = true;
       this.paso = 1;
       this.accion = 'vender';
@@ -134,7 +157,9 @@ export function ventaCoreStore() {
       this.descuentos.calcularDescuento(this.pickedTickets, this.cliente);
       this.iniciarAbono?.();
       document.body.style.overflow = 'hidden';
+      
     },
+
     closeModal() {
       this.modalOpen = false;
       this.pickedTickets = [];
@@ -156,17 +181,21 @@ export function ventaCoreStore() {
       document.body.style.overflow = '';
     },
 
-    // ── Footer Actions (UN SOLO BOTÓN inteligente para Abono) ──
     clickVentaTotal() {
-      this.accion = 'vender';
+      
+     this.accion = 'vender';
       this.errorMensaje = '';
       this.resetAbono();
       if (!this.camposRequeridosCompletos()) {
         this.errorMensaje = 'Debes completar y validar todos los campos obligatorios antes de continuar.';
         return;
       }
-      this.paso = 2;
-    },
+      this.currentSubtotal = this.pickedTickets.reduce((sum, t) => sum + t.precio_ticket, 0);
+  // si la API de descuentos ya cargó un total > 0, úsalo; si no, subtotal
+  const backendTotal = parseFloat(this.descuentos?.totalAPagar ?? 0) || 0;
+  this.currentTotal = backendTotal > 0 ? backendTotal : this.currentSubtotal;
+  this.paso = 2;
+},
 
     clickApartado() {
       this.accion = 'apartado';
@@ -180,47 +209,37 @@ export function ventaCoreStore() {
     },
 
     clickAbonoInicial() {
-  // Si ya está visible el panel de abono, valida y avanza al paso de pago
-  if (this.abonoEnCurso) {
-    // Validación modo abono si hay más de un ticket
-    if (this.pickedTickets.length > 1 && !this.abonoModo) {
-      this.errorMensaje = 'Debes elegir si el abono es GLOBAL o POR TICKET.';
-      return;
-    }
-    // Si solo hay 1 ticket, asigna modo por defecto
-    if (this.pickedTickets.length === 1) {
-      this.abonoModo = 'ticket';
-      this.ticketParaAbono = this.pickedTickets[0].id;
-    }
-    // Validación ticket si es modo por ticket
-    if (this.abonoModo === 'ticket' && !this.ticketParaAbono) {
-      this.errorMensaje = 'Selecciona el ticket al que aplicarás el abono.';
-      return;
-    }
-    // Validación de monto
-    if (!this.montoAbono || Number(this.montoAbono) <= 0) {
-      this.errorMensaje = 'Debes ingresar un monto de abono válido.';
-      return;
-    }
-    // Validación campos obligatorios
-    if (!this.camposRequeridosCompletos()) {
-      this.errorMensaje = 'Debes completar y validar todos los campos obligatorios antes de continuar.';
-      return;
-    }
-    // Todo bien: avanza al paso 2 (método de pago) y cierra panel abono
-    this.accion = 'abono';
-    this.errorMensaje = '';
-    this.abonoEnCurso = false; // Aquí se cierra el panel de abono
-    this.paso = 2;
-    return;
-  }
-  // Si NO está abierto el panel de abono, lo abre (paso 1)
-  this.accion = 'abono';
-  this.errorMensaje = '';
-  this.abonoEnCurso = true;
-},
-
-
+      if (this.abonoEnCurso) {
+        if (this.pickedTickets.length > 1 && !this.abonoModo) {
+          this.errorMensaje = 'Debes elegir si el abono es GLOBAL o POR TICKET.';
+          return;
+        }
+        if (this.pickedTickets.length === 1) {
+          this.abonoModo = 'ticket';
+          this.ticketParaAbono = this.pickedTickets[0].id;
+        }
+        if (this.abonoModo === 'ticket' && !this.ticketParaAbono) {
+          this.errorMensaje = 'Selecciona el ticket al que aplicarás el abono.';
+          return;
+        }
+        if (!this.montoAbono || Number(this.montoAbono) <= 0) {
+          this.errorMensaje = 'Debes ingresar un monto de abono válido.';
+          return;
+        }
+        if (!this.camposRequeridosCompletos()) {
+          this.errorMensaje = 'Debes completar y validar todos los campos obligatorios antes de continuar.';
+          return;
+        }
+        this.accion = 'abono';
+        this.errorMensaje = '';
+        this.abonoEnCurso = false;
+        this.paso = 2;
+        return;
+      }
+      this.accion = 'abono';
+      this.errorMensaje = '';
+      this.abonoEnCurso = true;
+    },
     // ── Procesar venta (igual que antes) ──
     async procesarVenta() {
       // Apartado (sin método de pago)
